@@ -184,8 +184,8 @@ impl Mercury {
     /// # }
     /// ```
     pub fn parse(&self, resource: &str) -> Response {
-        let mrcy = Mercury::clone(self);
-        let f = build_url(resource).and_then(move |url| send_request(mrcy, url));
+        let hg = Mercury::clone(self);
+        let f = build_url(resource).and_then(|url| send_request(hg, url));
 
         Response::new(Box::new(f))
     }
@@ -268,11 +268,11 @@ fn build_url(resource: &str) -> FutureResult<Uri, Error> {
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
-fn send_request(mrcy: Mercury, uri: Uri) -> Box<Future<Item = Article, Error = Error>> {
+fn send_request(hg: Mercury, uri: Uri) -> Box<Future<Item = Article, Error = Error>> {
     let mut req = Request::new(Get, uri);
 
     header!{ (XApiKey, "X-Api-Key") => [String] }
-    req.headers_mut().set(XApiKey(mrcy.key()));
+    req.headers_mut().set(XApiKey(hg.key()));
 
     #[derive(Deserialize)]
     #[serde(untagged)]
@@ -284,7 +284,7 @@ fn send_request(mrcy: Mercury, uri: Uri) -> Box<Future<Item = Article, Error = E
         },
     }
 
-    let resp = mrcy.client()
+    let resp = hg.client()
         .request(req)
         .and_then(|resp| resp.body().map(stream::iter_ok).flatten().collect())
         .map_err(Error::from)
