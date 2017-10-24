@@ -184,8 +184,32 @@ impl Mercury {
     /// # }
     /// ```
     pub fn parse(&self, resource: &str) -> Response {
-        let hg = Mercury::clone(self);
-        let f = build_url(resource).and_then(|url| send_request(hg, url));
+        let mrcy = Mercury::clone(self);
+        let f = build_url(resource).and_then(move |url| {
+            let mut req = Request::new(Get, url);
+
+            header!{ (XApiKey, "X-Api-Key") => [String] }
+            req.headers_mut().set(XApiKey(mrcy.key()));
+
+            #[derive(Deserialize)]
+            #[serde(untagged)]
+            enum ParserResult {
+                Ok(Box<Article>),
+                Err {
+                    #[serde(rename = "message")] msg: Option<String>,
+                    #[serde(default, rename = "messages")] msgs: String,
+                },
+            }
+
+            mrcy.client()
+                .request(req)
+                .and_then(|resp| resp.body().map(stream::iter_ok).flatten().collect())
+                .map_err(Error::from)
+                .and_then(|body| match serde_json::from_slice(&body)? {
+                    ParserResult::Ok(article) => Ok(*article),
+                    ParserResult::Err { msg, msgs } => bail!(msg.unwrap_or(msgs)),
+                })
+        });
 
         Response::new(Box::new(f))
     }
@@ -218,8 +242,8 @@ impl Clone for Mercury {
 pub struct Response(Box<Future<Item = Article, Error = Error>>);
 
 impl Response {
-    fn new(inner: Box<Future<Item = Article, Error = Error>>) -> Response {
-        Response(inner)
+    fn new(f: Box<Future<Item = Article, Error = Error>>) -> Response {
+        Response(f)
     }
 }
 
@@ -228,8 +252,8 @@ impl Future for Response {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        let Response(ref mut inner) = *self;
-        inner.poll()
+        let Response(ref mut f) = *self;
+        f.poll()
     }
 }
 
@@ -265,33 +289,4 @@ fn build_url(resource: &str) -> FutureResult<Uri, Error> {
         Ok(uri) => future::ok(uri),
         Err(e) => future::err(e.into()),
     }
-}
-
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
-fn send_request(hg: Mercury, uri: Uri) -> Box<Future<Item = Article, Error = Error>> {
-    let mut req = Request::new(Get, uri);
-
-    header!{ (XApiKey, "X-Api-Key") => [String] }
-    req.headers_mut().set(XApiKey(hg.key()));
-
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum ParserResult {
-        Ok(Box<Article>),
-        Err {
-            #[serde(rename = "message")] msg: Option<String>,
-            #[serde(default, rename = "messages")] msgs: String,
-        },
-    }
-
-    let resp = hg.client()
-        .request(req)
-        .and_then(|resp| resp.body().map(stream::iter_ok).flatten().collect())
-        .map_err(Error::from)
-        .and_then(|body| match serde_json::from_slice(&body)? {
-            ParserResult::Ok(article) => Ok(*article),
-            ParserResult::Err { msg, msgs } => bail!(msg.unwrap_or(msgs)),
-        });
-
-    Box::new(resp)
 }
