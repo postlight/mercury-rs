@@ -1,0 +1,6 @@
+.env
+.vscode/
+*.DS_Store
+**/*.rs.bk
+/target/
+Cargo.lock

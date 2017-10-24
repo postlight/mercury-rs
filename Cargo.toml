@@ -1,0 +1,49 @@
+[package]
+authors = [
+    "Adam Pash <adam.pash@postlight.com>",
+    "Jeremy Mack <jeremy.mack@postlight.com>",
+    "Zachary Golba <zachary.golba@postlight.com>",
+]
+categories = [
+    "api-bindings",
+    "asynchronous",
+    "web-programming::http-client",
+]
+description = "The official Rust client for the Mercury Parser."
+documentation = "https://docs.rs/mercury/0.1"
+homepage = "https://mercury.postlight.com"
+keywords = [
+    "async",
+    "client",
+    "mercury",
+    "parser",
+    "web",
+]
+license = "MIT/Apache-2.0"
+name = "mercury"
+readme = "README.md"
+repository = "https://github.com/postlight/mercury-rs"
+version = "0.1.0"
+
+[dependencies]
+error-chain = "0.11.0"
+futures = "0.1.16"
+http = "0.1.1"
+hyper = "0.11.6"
+hyper-tls = "0.1.2"
+native-tls = "0.1.4"
+num_cpus = "1.7.0"
+serde = "1.0.15"
+serde_derive = "1.0.15"
+serde_json = "1.0.4"
+tokio-core = "0.1.10"
+
+[dependencies.chrono]
+features = ["serde"]
+version = "0.4.0"
+
+[dev-dependencies]
+dotenv = "0.10.1"
+
+[workspace]
+members = ["examples/*"]

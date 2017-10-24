@@ -1,0 +1,21 @@
+[package]
+authors = [
+    "Adam Pash <adam.pash@postlight.com>",
+    "Jeremy Mack <jeremy.mack@postlight.com>",
+    "Zachary Golba <zachary.golba@postlight.com>",
+]
+license = "MIT/Apache-2.0"
+name = "mr"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+clap = "2.26.2"
+dotenv = "0.10.1"
+error-chain = "0.11.0"
+futures = "0.1.16"
+html2text = "0.1.6"
+tokio-core = "0.1.10"
+
+[dependencies.mercury]
+path = "../.."
