@@ -190,13 +190,13 @@ impl Mercury {
         Response::new(Box::new(f))
     }
 
-    /// A reference to the underlying hyper client.
+    /// Returns a reference to the underlying hyper client.
     fn client(&self) -> &Client<Connect> {
         let Mercury(ref inner) = *self;
         &inner.client
     }
 
-    /// Returns an owned copy of the api key.
+    /// Returns an owned copy of the API key.
     fn key(&self) -> String {
         let Mercury(ref inner) = *self;
         inner.key.to_owned()
