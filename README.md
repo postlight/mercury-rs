@@ -1,5 +1,7 @@
 # mercury-rs
 
+[![CircleCI branch](https://img.shields.io/circleci/token/2a269417e742b12343eab366752dbb8d837cb1e8/project/github/postlight/mercury-rs/master.svg?style=flat-square)](https://circleci.com/gh/postlight/mercury-rs/tree/master)
+
 The official Rust client for the [Mercury Parser](https://mercury.postlight.com/web-parser).
 
 With just one API request, Mercury takes any web article and returns only the relevant content — headline, author, body text, relevant images and more — free from any clutter. It’s reliable, easy-to-use and free.
