@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use http::Uri;
 
 /// Structured data, deserialized from an API response.
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -19,11 +18,9 @@ pub struct Article {
     #[serde(default)]
     pub excerpt: String,
     /// The url of the lead image (if present).
-    #[serde(with = "serde_uri_opt")]
-    pub lead_image_url: Option<Uri>,
+    pub lead_image_url: Option<String>,
     /// The url of the next page (if present).
-    #[serde(with = "serde_uri_opt")]
-    pub next_page_url: Option<Uri>,
+    pub next_page_url: Option<String>,
     /// The number of pages included in `content`.
     #[serde(default = "default_page_field_value")]
     pub rendered_pages: u64,
@@ -34,8 +31,7 @@ pub struct Article {
     #[serde(default = "default_page_field_value")]
     pub total_pages: u64,
     /// The original url.
-    #[serde(with = "serde_uri")]
-    pub url: Uri,
+    pub url: String,
     /// The total number of words.
     #[serde(default)]
     pub word_count: u64,
@@ -112,56 +108,4 @@ impl Default for TextDirection {
 /// field is blank during deserialization.
 fn default_page_field_value() -> u64 {
     1
-}
-
-/// Custom `deserialize` and `serialize` functions for `Uri` types.
-mod serde_uri {
-    use http::Uri;
-    use serde::de::{self, Deserialize, Deserializer};
-    use serde::ser::{Serialize, Serializer};
-
-    pub fn serialize<S>(uri: &Uri, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        format!("{}", uri).serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Uri, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(de::Error::custom)
-    }
-}
-
-/// Custom `deserialize` and `serialize` functions for optional `Uri` types.
-mod serde_uri_opt {
-    use http::Uri;
-    use serde::de::{self, Deserialize, Deserializer};
-    use serde::ser::Serializer;
-
-    use super::serde_uri;
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Uri>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        match Option::<String>::deserialize(deserializer)? {
-            Some(ref value) => value.parse().map(Some).map_err(de::Error::custom),
-            None => Ok(None),
-        }
-    }
-
-    pub fn serialize<S>(uri: &Option<Uri>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match *uri {
-            Some(ref value) => serde_uri::serialize(value, serializer),
-            None => serializer.serialize_none(),
-        }
-    }
 }

@@ -77,7 +77,6 @@ extern crate chrono;
 #[macro_use]
 extern crate error_chain;
 extern crate futures;
-extern crate http;
 #[macro_use]
 extern crate hyper;
 extern crate hyper_tls;
