@@ -148,6 +148,11 @@ impl Mercury {
         Inner::new(handle, key).map(Rc::new).map(Mercury)
     }
 
+    /// Return a reference to a handle to the event loop this client is associated with.
+    pub fn handle(&self) -> &Handle {
+        self.client().handle()
+    }
+
     /// Send a request to the Mercury Parser API using this client.
     ///
     /// # Example
