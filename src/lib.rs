@@ -191,22 +191,12 @@ impl Mercury {
             header!{ (XApiKey, "X-Api-Key") => [String] }
             req.headers_mut().set(XApiKey(mrcy.key()));
 
-            #[derive(Deserialize)]
-            #[serde(untagged)]
-            enum ParserResult {
-                Ok(Box<Article>),
-                Err {
-                    #[serde(rename = "message")] msg: Option<String>,
-                    #[serde(default, rename = "messages")] msgs: String,
-                },
-            }
-
             mrcy.client()
                 .request(req)
                 .and_then(|resp| resp.body().map(stream::iter_ok).flatten().collect())
                 .map_err(Error::from)
                 .and_then(|body| match serde_json::from_slice(&body)? {
-                    ParserResult::Ok(article) => Ok(*article),
+                    ParserResult::Ok(article) => Ok(article),
                     ParserResult::Err { msg, msgs } => bail!(msg.unwrap_or(msgs)),
                 })
         });
@@ -272,12 +262,19 @@ impl Inner {
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(large_enum_variant))]
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum ParserResult {
+    Ok(Article),
+    Err {
+        #[serde(rename = "message")] msg: Option<String>,
+        #[serde(default, rename = "messages")] msgs: String,
+    },
+}
+
 fn build_url(resource: &str) -> FutureResult<Uri, Error> {
     const ENDPOINT: &'static str = "https://mercury.postlight.com/parser";
-
-    if let Err(e) = resource.parse::<Uri>() {
-        return future::err(e.into());
-    }
 
     let mut raw = String::with_capacity(ENDPOINT.len() + resource.len() + 5);
 
