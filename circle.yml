@@ -1,0 +1,11 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: rust
+    working_directory: ~/mercury-rs
+    steps:
+      - checkout
+      - run:
+          name: Test
+          command: cargo test
