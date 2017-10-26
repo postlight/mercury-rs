@@ -1,0 +1,26 @@
+[package]
+authors = [
+    "Adam Pash <adam.pash@postlight.com>",
+    "Jeremy Mack <jeremy.mack@postlight.com>",
+    "Zachary Golba <zachary.golba@postlight.com>",
+]
+license = "MIT/Apache-2.0"
+name = "mercury-rocket"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+dotenv = "0.10.1"
+error-chain = "0.11.0"
+futures = "0.1.16"
+rocket = "0.3.3"
+rocket_codegen = "0.3.3"
+tokio-core = "0.1.10"
+
+[dependencies.mercury]
+path = "../../"
+
+[dependencies.rocket_contrib]
+default-features = false
+features = ["handlebars_templates"]
+version = "0.3.3"

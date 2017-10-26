@@ -17,9 +17,9 @@ pub struct Article {
     /// A short description.
     #[serde(default)]
     pub excerpt: String,
-    /// The url of the lead image (if present).
+    /// The url of the lead image.
     pub lead_image_url: Option<String>,
-    /// The url of the next page (if present).
+    /// The url of the next page.
     pub next_page_url: Option<String>,
     /// The number of pages included in `content`.
     #[serde(default = "default_page_field_value")]

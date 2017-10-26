@@ -33,39 +33,40 @@
 //! # extern crate mercury;
 //! # extern crate tokio_core;
 //! #
-//! # use std::env;
-//! # use std::error::Error;
+//! # use std::{env, error};
 //! #
 //! # use dotenv::dotenv;
 //! # use futures::Future;
 //! # use mercury::Mercury;
 //! # use tokio_core::reactor::Core;
 //! #
-//! # fn run() -> Result<(), Box<Error>> {
+//! # type Error = Box<error::Error>;
+//! #
+//! # fn main() {
+//! #     dotenv().ok();
+//! #     example().unwrap();
+//! # }
+//! #
+//! # fn example() -> Result<(), Error> {
 //! // Create a new event loop with tokio.
 //! let mut core = Core::new()?;
+//! let handle = core.handle();
 //!
 //! // Load your API key from the environment.
 //! let key = env::var("MERCURY_API_KEY")?;
 //!
 //! // Pass a handle to the event loop and the API key to the Mercury constructor.
-//! let client = Mercury::new(&core.handle(), key)?;
+//! let client = Mercury::new(&handle, key)?;
 //!
 //! // The parse method returns a Future that will resolve to a parsed Article.
-//! let resp = client.parse("https://example.com").inspect(|article| {
+//! let future = client.parse("https://example.com").inspect(|article| {
 //!     println!("{:#?}", article);
 //! });
 //!
 //! // Block the current thread until the future completes.
-//! core.run(resp)?;
+//! core.run(future)?;
 //! #
 //! # Ok(())
-//! # }
-//! #
-//! #
-//! # fn main() {
-//! # dotenv().ok();
-//! # run().unwrap();
 //! # }
 //! ```
 //!
@@ -95,8 +96,7 @@ pub mod error;
 
 use std::rc::Rc;
 
-use futures::{stream, Future, Poll, Stream};
-use futures::future::{self, FutureResult};
+use futures::{stream, Future, IntoFuture, Poll, Stream};
 use hyper_tls::HttpsConnector;
 use hyper::{Get, Request, Uri};
 use hyper::client::{Client, HttpConnector};
@@ -105,12 +105,13 @@ use tokio_core::reactor::Handle;
 pub use article::*;
 pub use error::Error;
 
+const ENDPOINT: &'static str = "https://mercury.postlight.com/parser";
+
 type Connect = HttpsConnector<HttpConnector>;
 
-/// A client used to make requests to the Mercury Parser API.
+/// A client used to make requests to the [Mercury Parser].
 ///
-/// See the [module-level documentation] for more details.
-/// [module-level documentation]: ./index.html
+/// [Mercury Parser]: https://mercury.postlight.com/web-parser
 #[derive(Debug)]
 pub struct Mercury(Rc<Inner>);
 
@@ -121,26 +122,31 @@ impl Mercury {
     ///
     /// ```
     /// # extern crate dotenv;
+    /// # extern crate futures;
     /// # extern crate mercury;
     /// # extern crate tokio_core;
     /// #
-    /// # use std::env;
-    /// # use std::error::Error;
+    /// # use std::{env, error};
     /// #
     /// # use dotenv::dotenv;
+    /// # use futures::Future;
     /// # use mercury::Mercury;
     /// # use tokio_core::reactor::Core;
+    /// #
+    /// # type Error = Box<error::Error>;
     /// #
     /// # fn main() {
     /// #     dotenv().ok();
     /// #     example().unwrap();
     /// # }
     /// #
-    /// # fn example() -> Result<(), Box<Error>> {
+    /// # fn example() -> Result<(), Error> {
     /// let core = Core::new()?;
-    /// let key = env::var("MERCURY_API_KEY")?;
+    /// let handle = core.handle();
     ///
-    /// Mercury::new(&core.handle(), key)?;
+    /// let key = env::var("MERCURY_API_KEY")?;
+    /// let client = Mercury::new(&handle, key)?;
+    /// #
     /// # Ok(())
     /// # }
     /// ```
@@ -153,6 +159,11 @@ impl Mercury {
         self.client().handle()
     }
 
+    /// Returns a reference to the API key associated with this client.
+    pub fn key(&self) -> &str {
+        &self.0.key
+    }
+
     /// Send a request to the Mercury Parser API using this client.
     ///
     /// # Example
@@ -163,39 +174,43 @@ impl Mercury {
     /// # extern crate mercury;
     /// # extern crate tokio_core;
     /// #
-    /// # use std::env;
-    /// # use std::error::Error;
+    /// # use std::{env, error};
     /// #
     /// # use dotenv::dotenv;
     /// # use futures::Future;
     /// # use mercury::Mercury;
     /// # use tokio_core::reactor::Core;
     /// #
+    /// # type Error = Box<error::Error>;
+    /// #
     /// # fn main() {
     /// #     dotenv().ok();
     /// #     example().unwrap();
     /// # }
     /// #
-    /// # fn example() -> Result<(), Box<Error>> {
+    /// # fn example() -> Result<(), Error> {
     /// # let mut core = Core::new()?;
-    /// # let client = Mercury::new(&core.handle(), env::var("MERCURY_API_KEY")?)?;
+    /// # let handle = core.handle();
     /// #
-    /// let resp = client.parse("https://example.com").inspect(|article| {
-    ///     println!("{}", article.content);
+    /// # let key = env::var("MERCURY_API_KEY")?;
+    /// # let client = Mercury::new(&handle, key)?;
+    /// #
+    /// let future = client.parse("https://example.com").inspect(|article| {
+    ///     println!("{:#?}", article);
     /// });
-    /// # core.run(resp)?;
-    /// # Ok(())
+    /// #
+    /// # core.run(future.then(|_| Ok(())))
     /// # }
     /// ```
     pub fn parse(&self, resource: &str) -> Response {
-        let mrcy = Mercury::clone(self);
-        let f = build_url(resource).and_then(move |url| {
+        let merc = Mercury::clone(self);
+        let f = build_url(resource).into_future().and_then(move |url| {
             let mut req = Request::new(Get, url);
 
             header!{ (XApiKey, "X-Api-Key") => [String] }
-            req.headers_mut().set(XApiKey(mrcy.key()));
+            req.headers_mut().set(XApiKey(merc.key().to_owned()));
 
-            mrcy.client()
+            merc.client()
                 .request(req)
                 .and_then(|resp| resp.body().map(stream::iter_ok).flatten().collect())
                 .map_err(Error::from)
@@ -210,21 +225,16 @@ impl Mercury {
 
     /// Returns a reference to the underlying hyper client.
     fn client(&self) -> &Client<Connect> {
-        let Mercury(ref inner) = *self;
-        &inner.client
-    }
-
-    /// Returns an owned copy of the API key.
-    fn key(&self) -> String {
-        let Mercury(ref inner) = *self;
-        inner.key.to_owned()
+        &self.0.client
     }
 }
 
 impl Clone for Mercury {
+    /// Increments the strong reference count of the underlying [`Rc`] pointer.
+    ///
+    /// [`Rc`]: https://doc.rust-lang.org/std/rc/struct.Rc.html
     fn clone(&self) -> Mercury {
-        let Mercury(ref inner) = *self;
-        Mercury(Rc::clone(inner))
+        Mercury(Rc::clone(&self.0))
     }
 }
 
@@ -246,8 +256,7 @@ impl Future for Response {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        let Response(ref mut f) = *self;
-        f.poll()
+        self.0.poll()
     }
 }
 
@@ -277,17 +286,12 @@ enum ParserResult {
     },
 }
 
-fn build_url(resource: &str) -> FutureResult<Uri, Error> {
-    const ENDPOINT: &'static str = "https://mercury.postlight.com/parser";
-
+fn build_url(resource: &str) -> Result<Uri, Error> {
     let mut raw = String::with_capacity(ENDPOINT.len() + resource.len() + 5);
 
     raw.push_str(ENDPOINT);
     raw.push_str("?url=");
     raw.push_str(resource);
 
-    match raw.parse() {
-        Ok(uri) => future::ok(uri),
-        Err(e) => future::err(e.into()),
-    }
+    Ok(raw.parse()?)
 }

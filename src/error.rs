@@ -1,15 +1,17 @@
-use hyper::error::UriError;
+use hyper::error::{Error as HyperError, UriError};
+use native_tls::Error as TlsError;
+use serde_json::Error as JsonError;
 
 error_chain!{
     foreign_links {
-        Http(::hyper::error::Error);
-        Json(::serde_json::Error);
-        Tls(::native_tls::Error);
+        Http(HyperError);
+        Json(JsonError);
+        Tls(TlsError);
     }
 }
 
 impl From<UriError> for Error {
     fn from(e: UriError) -> Error {
-        ErrorKind::Http(e.into()).into()
+        HyperError::from(e).into()
     }
 }

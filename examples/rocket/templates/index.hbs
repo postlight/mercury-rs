@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      {{title}}
+    </title>
+    <link rel="stylesheet" href="https://unpkg.com/tachyons@4.8.1/css/tachyons.min.css" />
+    <link rel="stylesheet" href="/reader.css" />
+</head>
+<body>
+  <header class="fixed top-0 left-0 w-100 pv3 ph3 ph0-l bg-white reader-heading">
+    <div class="h-100 reader-layout">
+      <a class="db no-underline" href="{{url}}" target="blank">
+        {{#if author}}
+          <div class="mb1 overflow-hidden">
+            <span class="f5 fw6 nowrap">
+              {{author}}
+            </span>
+          </div>
+        {{/if}}
+        <div class="overflow-hidden">
+          <span class="f3 fw5 nowrap">
+            {{title}}
+          </span>
+        </div>
+      </a>
+    </div>
+  </header>
+  <main class="mb3 ph3 ph0-l reader-layout">
+    {{#if lead_image_url}}
+        <div>
+          <img alt="Lead" src="{{lead_image_url}}" />
+        </div>
+    {{/if}}
+    <div class="hg-article mw-100 overflow-hidden">
+      {{{content}}}
+    </div>
+  </main>
+</body>
+</html>

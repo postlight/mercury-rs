@@ -1,0 +1,56 @@
+body {
+  font-size: 16px;
+  font-family: sans-serif;
+  color: rgba(0, 0, 0, .84);
+  font-weight: 400;
+}
+
+a {
+  color: rgba(0, 0, 0, .84);
+  text-decoration: underline;
+}
+
+.hg-article figure {
+  margin: 0;
+}
+
+.hg-article img {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.hg-article li, .hg-article p {
+  line-height: 1.65;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hg-article pre {
+  background: #F4F4F4;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.reader-heading {
+  height: 82px;
+}
+
+.reader-heading a {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.reader-heading a > div {
+  text-overflow: ellipsis;
+}
+
+.reader-layout {
+  max-width: 58rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main.render-layout {
+  margin-top: 82px;
+}
